@@ -1,28 +1,17 @@
-
 {
   "name": "aqbattle",
   "version": "1.0.0",
-  "private": true,
-  "description": "AQBATTLE - 3D Multiplayer Battle Royale Game",
-  "type": "module",
+  "description": "AQBATTLE - Online Battle Royale Game",
+  "main": "server.js",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "start": "vite --host 0.0.0.0",
-    "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0",
-    "server": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
-    "three": "^0.180.0",
-    "socket.io-client": "^4.8.1",
-    "socket.io": "^4.8.1",
-    "howler": "^2.2.4",
-    "nipplejs": "^0.10.2",
-    "gsap": "^3.13.0",
-    "zustand": "^5.0.8",
-    "uuid": "^11.1.0"
-  },
-  "devDependencies": {
-    "vite": "^7.1.7"
+    "bcryptjs": "^2.4.3",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.8.1"
   }
 }
