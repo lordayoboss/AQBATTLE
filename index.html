@@ -2,300 +2,84 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AQBATTLE</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;background:#101820;color:white;font-family:Arial}
-button,input,select{padding:12px;border:0;border-radius:7px}
-button{background:#ff9d00;color:#111;font-weight:bold;cursor:pointer}
-button:hover{background:#ffc04d}
-header{background:#172735;padding:18px;display:flex;justify-content:space-between}
-h1{color:#ff9d00;margin:0}
-.screen{padding:20px;max-width:1100px;margin:auto}
-.panel{background:#203342;padding:18px;border-radius:12px;margin:12px 0}
-input,select{margin:5px;background:#eee;width:100%;max-width:350px}
-.hidden{display:none!important}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
-.item{background:#304657;padding:15px;border-radius:10px;text-align:center}
-#arena{height:65vh;min-height:400px;background:#315b38;position:relative;overflow:hidden;border:4px solid #718c55;border-radius:12px}
-.player,.bot{position:absolute;width:28px;height:28px;border-radius:50%;background:#00d9ff;border:3px solid white}
-.bot{background:#ff4040}
-#player{left:50%;top:50%}
-#controls{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px}
-#controls button{padding:13px 3px}
-#status{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.small{font-size:12px;color:#ccc}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <meta name="theme-color" content="#101820">
+  <meta name="description" content="AQBATTLE - Battle Royale">
+
+  <title>AQBATTLE | Battle Royale</title>
+
+  <!-- Game styling -->
+  <link rel="stylesheet" href="/style.css">
+
+  <!-- Three.js graphics engine -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+  <!-- Socket.IO multiplayer connection -->
+  <script src="/socket.io/socket.io.js"></script>
 </head>
+
 <body>
 
-<header>
-<h1>⚔ AQBATTLE</h1>
-<div>🪙 <span id="coins">1000</span> | 💎 <span id="diamonds">100</span></div>
-</header>
+  <!-- Main game screen -->
+  <main id="game-container">
 
-<!-- LOGIN -->
-<section id="login" class="screen">
-<div class="panel">
-<h2>Welcome to AQBATTLE</h2>
-<input id="username" placeholder="Username">
-<input id="password" type="password" placeholder="Password">
-<button onclick="register()">Register</button>
-<button onclick="loginUser()">Login</button>
-<p id="loginMessage"></p>
-</div>
-</section>
+    <!-- Game graphics appear here -->
+    <div id="game-canvas"></div>
 
-<!-- LOBBY -->
-<section id="lobby" class="screen hidden">
-<div class="panel">
-<h2>🏆 Battle Lobby</h2>
-<p>Player: <b id="playerName"></b></p>
-<p>Level: 1 | Rank: Beginner</p>
-<button onclick="show('characters')">Character Selection</button>
-<button onclick="show('shop')">Weapon & Skin Shop</button>
-<button onclick="show('settings')">Settings</button>
-<button onclick="startMatch()">Find Match (2–10)</button>
-</div>
-<div class="panel">
-<h3>Game modes</h3>
-<div class="grid">
-<div class="item">Battle Royale</div>
-<div class="item">Team Battle</div>
-<div class="item">Training Arena</div>
-</div>
-</div>
-</section>
+    <!-- Loading screen -->
+    <section id="loading-screen">
+      <h1>AQBATTLE</h1>
+      <p>BATTLE ROYALE</p>
+      <div class="loading-bar">
+        <div class="loading-progress"></div>
+      </div>
+      <p>LOADING BATTLEFIELD...</p>
+    </section>
 
-<!-- CHARACTERS -->
-<section id="characters" class="screen hidden">
-<div class="panel">
-<h2>Choose Character</h2>
-<button onclick="chooseCharacter('Male')">👨 Male</button>
-<button onclick="chooseCharacter('Female')">👩 Female</button>
-<p id="character"></p>
-<button onclick="show('lobby')">Back</button>
-</div>
-</section>
+    <!-- Player information -->
+    <header id="game-header">
+      <div class="player-info">
+        <strong id="player-name">AQ SOLDIER</strong>
+        <span>LEVEL 1</span>
+      </div>
 
-<!-- SHOP -->
-<section id="shop" class="screen hidden">
-<div class="panel">
-<h2>Weapon & Skin Shop</h2>
-<div class="grid">
-<div class="item">🔫 Rifle<br>300 coins<br><button onclick="buy('Rifle',300)">Buy</button></div>
-<div class="item">🔫 Shotgun<br>400 coins<br><button onclick="buy('Shotgun',400)">Buy</button></div>
-<div class="item">🔫 Sniper<br>500 coins<br><button onclick="buy('Sniper',500)">Buy</button></div>
-<div class="item">🛡 Blue Skin<br>200 coins<br><button onclick="buy('Blue Skin',200)">Buy</button></div>
-<div class="item">🛡 Gold Skin<br>50 diamonds<br><button onclick="buyDiamond('Gold Skin',50)">Buy</button></div>
-</div>
-<p>Purchased items: <span id="inventory">None</span></p>
-<button onclick="show('lobby')">Back</button>
-</div>
-</section>
+      <div class="currency">
+        🪙 <span id="player-coins">0</span>
+        💎 <span id="player-diamonds">0</span>
+      </div>
+    </header>
 
-<!-- SETTINGS -->
-<section id="settings" class="screen hidden">
-<div class="panel">
-<h2>Control Settings</h2>
-<label>Camera sensitivity <input type="range" min="1" max="100" value="50"></label>
-<label>Aim sensitivity <input type="range" min="1" max="100" value="40"></label>
-<label>Button size <input type="range" min="30" max="100" value="60"></label>
-<button onclick="show('lobby')">Save & Back</button>
-</div>
-</section>
+    <!-- Battle information -->
+    <div id="battle-info">
+      <span>PLAYERS: <b id="players-alive">0</b></span>
+      <span>KILLS: <b id="player-kills">0</b></span>
+    </div>
 
-<!-- ARENA -->
-<section id="game" class="screen hidden">
-<div class="panel">
-<div id="status">
-<span>❤️ Health: <b id="health">100</b></span>
-<span>🔫 Weapon: <b id="weapon">Rifle</b></span>
-<span>🎒 Backpack: <b id="backpack">Empty</b></span>
-<span>👥 Players: <b id="players">2</b></span>
-</div>
-</div>
+    <!-- Health and armour -->
+    <div id="health-panel">
+      <span>HP 100</span>
+      <div class="health-bar">
+        <div class="health-fill"></div>
+      </div>
+      <span>ARMOUR 100</span>
+    </div>
 
-<div id="arena">
-<div id="player" class="player"></div>
-<div id="bots"></div>
-</div>
+    <!-- Weapon information -->
+    <div id="weapon-panel">
+      <span id="weapon-name">ASSAULT RIFLE</span>
+      <strong id="ammo-count">30 / 120</strong>
+    </div>
 
-<div id="controls">
-<button onclick="move(0,-15)">⬆ Move</button>
-<button onclick="move(0,15)">⬇ Move</button>
-<button onclick="move(-15,0)">⬅ Move</button>
-<button onclick="move(15,0)">➡ Move</button>
-<button onclick="aim()">🎯 Aim</button>
-<button onclick="fire()">🔥 Fire</button>
-<button onclick="scope()">🔭 Scope</button>
-<button onclick="jump()">🦘 Jump</button>
-<button onclick="crouch()">Crouch</button>
-<button onclick="prone()">Prone</button>
-<button onclick="reload()">Reload</button>
-<button onclick="pickup()">Pickup</button>
-<button onclick="medkit()">🩹 Medkit</button>
-<button onclick="switchWeapon()">Switch</button>
-<button onclick="grenade()">Grenade</button>
-<button onclick="sprint()">Sprint</button>
-<button onclick="openMap()">Map</button>
-<button onclick="chat()">Chat</button>
-<button onclick="vehicle()">Vehicle</button>
-<button onclick="parachute()">Parachute</button>
-<button onclick="backpack()">Backpack</button>
-</div>
-<button onclick="show('lobby')">Leave Match</button>
-<p id="message"></p>
-</section>
+    <!-- Mobile controls are created by game.js -->
+    <div id="mobile-controls"></div>
 
-<script>
-let user=null;
-let coins=1000,diamonds=100;
-let inventory=[];
-let health=100;
-let ammo=30;
-let currentWeapon="Rifle";
-let character="Male";
-let position={x:50,y:50};
-let botCount=3;
-let kills=0;
+  </main>
 
-function save(){
- localStorage.setItem("aqbattle",JSON.stringify({
- user,coins,diamonds,inventory,character
- }));
- updateUI();
-}
-function load(){
- let data=JSON.parse(localStorage.getItem("aqbattle")||"null");
- if(data){
- user=data.user;coins=data.coins;diamonds=data.diamonds;
- inventory=data.inventory||[];character=data.character||"Male";
- }
- updateUI();
-}
-function updateUI(){
- document.getElementById("coins").textContent=coins;
- document.getElementById("diamonds").textContent=diamonds;
- document.getElementById("inventory").textContent=inventory.join(", ")||"None";
-}
-function register(){
- let name=username.value.trim();
- let pass=password.value;
- if(!name||!pass)return loginMessage.textContent="Enter username and password";
- if(localStorage.getItem("account_"+name))
- return loginMessage.textContent="Account already exists";
- localStorage.setItem("account_"+name,JSON.stringify({pass}));
- user=name;save();enterLobby();
-}
-function loginUser(){
- let name=username.value.trim();
- let account=JSON.parse(localStorage.getItem("account_"+name)||"null");
- if(!account||account.pass!==password.value)
- return loginMessage.textContent="Incorrect login details";
- user=name;load();enterLobby();
-}
-function enterLobby(){
- playerName.textContent=user;
- show("lobby");
-}
-function show(id){
- document.querySelectorAll(".screen").forEach(s=>s.classList.add("hidden"));
- document.getElementById(id).classList.remove("hidden");
-}
-function chooseCharacter(c){
- character=c;
- document.getElementById("character").textContent="Selected: "+c;
- save();
-}
-function buy(item,cost){
- if(coins<cost)return alert("Not enough coins");
- if(inventory.includes(item))return alert("Already owned");
- coins-=cost;inventory.push(item);save();
- alert(item+" purchased!");
-}
-function buyDiamond(item,cost){
- if(diamonds<cost)return alert("Not enough diamonds");
- if(inventory.includes(item))return alert("Already owned");
- diamonds-=cost;inventory.push(item);save();
-}
-function startMatch(){
- show("game");
- health=100;ammo=30;kills=0;
- position={x:50,y:50};
- document.getElementById("health").textContent=health;
- document.getElementById("weapon").textContent=currentWeapon;
- document.getElementById("players").textContent=2;
- createBots();
- renderPlayer();
- message.textContent="Battle started! Defeat the training bots.";
-}
-function createBots(){
- bots.innerHTML="";
- for(let i=0;i<botCount;i++){
- let b=document.createElement("div");
- b.className="bot";
- b.style.left=(10+Math.random()*80)+"%";
- b.style.top=(10+Math.random()*80)+"%";
- bots.appendChild(b);
- }
-}
-function renderPlayer(){
- player.style.left=position.x+"%";
- player.style.top=position.y+"%";
-}
-function move(x,y){
- position.x=Math.max(0,Math.min(95,position.x+x/5));
- position.y=Math.max(0,Math.min(95,position.y+y/5));
- renderPlayer();
-}
-function say(t){message.textContent=t;}
-function aim(){say("Aiming mode activated");}
-function scope(){say("Scope activated");}
-function jump(){say("Jump activated");}
-function crouch(){say("Crouching");}
-function prone(){say("Prone mode");}
-function sprint(){move(5,0);say("Sprint activated");}
-function reload(){ammo=30;say("Weapon reloaded: 30 rounds");}
-function fire(){
- if(ammo<=0)return say("Reload your weapon");
- ammo--;
- let targets=[...document.querySelectorAll(".bot")];
- if(targets.length){
- let target=targets[0];
- target.remove();kills++;
- say("Bot eliminated! Kills: "+kills);
- if(!targets.length)coins+=100;
- }else say("No training bots remaining");
-}
-function pickup(){
- inventory.push("Loot item");
- save();say("Item collected");
-}
-function medkit(){
- if(health>=100)return say("Health is already full");
- health=Math.min(100,health+30);
- document.getElementById("health").textContent=health;
- say("Medkit used");
-}
-function switchWeapon(){
- currentWeapon=currentWeapon==="Rifle"?"Shotgun":"Rifle";
- document.getElementById("weapon").textContent=currentWeapon;
- say("Switched to "+currentWeapon);
-}
-function grenade(){say("Training grenade activated");}
-function openMap(){say("Battlefield map: Training arena");}
-function chat(){let m=prompt("Enter team message");if(m)say(user+": "+m);}
-function vehicle(){say("Vehicle interaction activated");}
-function parachute(){say("Parachute deployed");}
-function backpack(){
- document.getElementById("backpack").textContent=inventory.length+" items";
- say("Backpack opened");
-}
-load();
-if(user)enterLobby();
-</script>
+  <!-- Game JavaScript -->
+  <script src="/game.js"></script>
+
 </body>
 </html>
