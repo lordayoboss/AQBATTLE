@@ -1,204 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AQBATTLE</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AQBATTLE</title>
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
+<style>
+* { box-sizing: border-box; }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: #101820;
-      color: white;
-      font-family: Arial, sans-serif;
-      display: grid;
-      place-items: center;
-      padding: 20px;
-    }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #101820;
+  color: white;
+  font-family: Arial, sans-serif;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
 
-    .panel {
-      width: min(100%, 480px);
-      padding: 30px;
-      border: 1px solid #52616b;
-      border-radius: 16px;
-      background: #1b2833;
-      text-align: center;
-    }
+.panel {
+  width: min(100%, 480px);
+  padding: 30px;
+  border: 1px solid #52616b;
+  border-radius: 16px;
+  background: #1b2833;
+  text-align: center;
+}
 
-    h1 {
-      color: #ffb000;
-      font-size: 42px;
-      margin: 0 0 8px;
-    }
+h1 {
+  color: #ffb000;
+  font-size: 42px;
+}
 
-    .subtitle {
-      color: #c5d0d8;
-      margin-bottom: 28px;
-    }
+input, button {
+  width: 100%;
+  padding: 15px;
+  margin: 9px 0;
+  border: 0;
+  border-radius: 9px;
+  font-size: 16px;
+}
 
-    input {
-      width: 100%;
-      padding: 14px;
-      margin: 8px 0;
-      border: 1px solid #667784;
-      border-radius: 8px;
-      background: #101820;
-      color: white;
-      font-size: 16px;
-    }
+input {
+  background: #101820;
+  color: white;
+  border: 1px solid #667784;
+}
 
-    button {
-      width: 100%;
-      padding: 14px;
-      margin-top: 12px;
-      border: 0;
-      border-radius: 8px;
-      background: #ffb000;
-      color: #101820;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+button {
+  background: #ffb000;
+  color: #101820;
+  font-weight: bold;
+  cursor: pointer;
+}
 
-    button:disabled {
-      opacity: .5;
-      cursor: not-allowed;
-    }
+#status {
+  color: #ffcf66;
+  min-height: 24px;
+}
 
-    #status {
-      min-height: 24px;
-      color: #ffcf66;
-      margin-top: 18px;
-    }
+.credit {
+  margin-top: 30px;
+  font-size: 13px;
+}
 
-    .credit {
-      margin-top: 30px;
-      font-size: 13px;
-      color: #c5d0d8;
-    }
-
-    #lobby {
-      display: none;
-    }
-  </style>
+#lobby { display: none; }
+</style>
 </head>
 
 <body>
+<main class="panel">
+  <h1>AQBATTLE</h1>
+  <p>ENTER THE BATTLE. FIGHT TO SURVIVE.</p>
 
-  <main class="panel">
+  <section id="login">
+    <input id="username" maxlength="20"
+      placeholder="Choose your username">
+    <button id="enter">ENTER AQBATTLE</button>
+  </section>
 
-    <h1>AQBATTLE</h1>
+  <section id="lobby">
+    <h2 id="welcome"></h2>
+    <p>CHOOSE YOUR GAME MODE</p>
 
-    <p class="subtitle">
-      ENTER THE BATTLE. FIGHT TO SURVIVE.
-    </p>
+    <button id="single">SINGLE PLAYER - PLAY AGAINST BOTS</button>
 
-    <section id="login">
-      <input
-        id="username"
-        maxlength="20"
-        placeholder="Choose your username"
-      >
+    <button id="multi">MULTIPLAYER - PLAY ONLINE</button>
 
-      <button id="enter">
-        ENTER AQBATTLE
-      </button>
-    </section>
+    <button id="leave">LOG OUT</button>
+  </section>
 
-    <section id="lobby">
-      <h2 id="welcome"></h2>
+  <p id="status">Ready to play?</p>
+  <p class="credit">MADE BY BELLO QUADRI AYOMIDE</p>
+</main>
 
-      <p>Welcome to the battle lobby.</p>
+<script src="https://aqbattle-server.onrender.com/socket.io/socket.io.js"></script>
 
-      <button id="find">
-        FIND MATCH (2–10 PLAYERS)
-      </button>
+<script>
+const socket = io("https://aqbattle-server.onrender.com");
 
-      <button id="leave">
-        LOG OUT
-      </button>
-    </section>
+const login = document.getElementById("login");
+const lobby = document.getElementById("lobby");
+const username = document.getElementById("username");
+const status = document.getElementById("status");
 
-    <p id="status">Ready to play?</p>
+document.getElementById("enter").onclick = () => {
+  const name = username.value.trim();
 
-    <p class="credit">
-      MADE BY BELLO QUADRI AYOMIDE
-    </p>
+  if (!name) {
+    status.textContent = "Enter a username first.";
+    return;
+  }
 
-  </main>
+  document.getElementById("welcome").textContent =
+    "Welcome, " + name + "!";
 
-  <!-- Connect to the Render server -->
-  <script src="https://aqbattle-server.onrender.com/socket.io/socket.io.js"></script>
+  login.style.display = "none";
+  lobby.style.display = "block";
+  status.textContent = "Choose your game mode.";
+};
 
-  <script>
-    const socket = io("https://aqbattle-server.onrender.com");
+document.getElementById("single").onclick = () => {
+  if (!socket.connected) {
+    status.textContent = "Please wait for the server connection.";
+    return;
+  }
 
-    const login = document.getElementById("login");
-    const lobby = document.getElementById("lobby");
-    const username = document.getElementById("username");
-    const status = document.getElementById("status");
+  window.dispatchEvent(new Event("aqbattle-single-player"));
+};
 
-    document.getElementById("enter").onclick = () => {
-      const name = username.value.trim();
+document.getElementById("multi").onclick = () => {
+  if (!socket.connected) {
+    status.textContent = "Server connection unavailable.";
+    return;
+  }
 
-      if (!name) {
-        status.textContent = "Please enter a username.";
-        return;
-      }
+  status.textContent = "Searching for other players...";
+  socket.emit("find-match");
+};
 
-      document.getElementById("welcome").textContent =
-        "Welcome, " + name + "!";
+document.getElementById("leave").onclick = () => {
+  location.reload();
+};
 
-      login.style.display = "none";
-      lobby.style.display = "block";
+socket.on("connect", () => {
+  status.textContent = "Connected to AQBATTLE server.";
+});
 
-      status.textContent = "You are connected to AQBATTLE.";
-    };
+socket.on("disconnect", () => {
+  status.textContent = "Connection lost. Refresh the page.";
+});
 
-    document.getElementById("find").onclick = () => {
-      if (!socket.connected) {
-        status.textContent = "Server connection lost. Please wait.";
-        return;
-      }
+socket.on("match-status", message => {
+  status.textContent = message;
+});
 
-      status.textContent = "Searching for other players...";
+socket.on("match-found", match => {
+  status.textContent =
+    "Match found! " + match.players + " players joined.";
+});
+</script>
 
-      socket.emit("find-match");
-    };
-
-    document.getElementById("leave").onclick = () => {
-      location.reload();
-    };
-
-    socket.on("connect", () => {
-      status.textContent = "Connected to AQBATTLE server.";
-    });
-
-    socket.on("connect_error", () => {
-      status.textContent = "Unable to connect. Please refresh the page.";
-    });
-
-    socket.on("disconnect", () => {
-      status.textContent = "Connection lost. Please refresh the page.";
-    });
-
-    socket.on("match-status", message => {
-      status.textContent = message;
-    });
-
-    socket.on("match-found", match => {
-      status.textContent =
-        "Match found! " + match.players +
-        " players joined. Game arena coming next.";
-    });
-  </script>
-
-  <script type="module" src="/game.js"></script>
-
+<script type="module" src="/game.js"></script>
 </body>
 </html>
