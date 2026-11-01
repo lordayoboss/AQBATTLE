@@ -12,13 +12,19 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
-const SECRET = process.env.JWT_SECRET || "CHANGE_THIS_SECRET_BEFORE_DEPLOYING";
+const SECRET = process.env.JWT_SECRET;
+
+if (!SECRET) {
+  console.warn("WARNING: Set JWT_SECRET before production use.");
+}
 
 const DATA_DIR = path.join(__dirname, "data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
-if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, "[]");
+if (!fs.existsSync(USERS_FILE)) {
+  fs.writeFileSync(USERS_FILE, "[]");
+}
 
 function readUsers() {
   try {
@@ -30,6 +36,18 @@ function readUsers() {
 
 function saveUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+}
+
+function publicPlayer(user) {
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    coins: user.coins,
+    diamonds: user.diamonds,
+    character: user.character,
+    purchases: user.purchases
+  };
 }
 
 app.use(express.json({ limit: "20kb" }));
@@ -69,19 +87,17 @@ app.post("/api/register", async (req, res) => {
     }
 
     const users = readUsers();
-    const normalizedEmail = email.toLowerCase().trim();
+    const cleanEmail = email.toLowerCase().trim();
 
-    if (users.some(u => u.email === normalizedEmail)) {
+    if (users.some(u => u.email === cleanEmail)) {
       return res.status(409).json({ error: "Email already registered." });
     }
 
-    const passwordHash = await bcrypt.hash(password, 12);
-
     const user = {
-      id: Date.now().toString(),
+      id: require("crypto").randomUUID(),
       username: username.trim(),
-      email: normalizedEmail,
-      passwordHash,
+      email: cleanEmail,
+      passwordHash: await bcrypt.hash(password, 12),
       coins: 1000,
       diamonds: 0,
       character: "male",
@@ -92,7 +108,11 @@ app.post("/api/register", async (req, res) => {
     users.push(user);
     saveUsers(users);
 
-    const token = jwt.sign({ id: user.id }, SECRET, { expiresIn: "7d" });
+    const token = jwt.sign(
+      { id: user.id },
+      SECRET || "development-only-secret",
+      { expiresIn: "7d" }
+    );
 
     res.status(201).json({
       message: "Account created!",
@@ -108,9 +128,7 @@ app.post("/api/register", async (req, res) => {
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const users = readUsers();
-
-    const user = users.find(
+    const user = readUsers().find(
       u => u.email === String(email || "").toLowerCase().trim()
     );
 
@@ -118,7 +136,11 @@ app.post("/api/login", async (req, res) => {
       return res.status(401).json({ error: "Incorrect email or password." });
     }
 
-    const token = jwt.sign({ id: user.id }, SECRET, { expiresIn: "7d" });
+    const token = jwt.sign(
+      { id: user.id },
+      SECRET || "development-only-secret",
+      { expiresIn: "7d" }
+    );
 
     res.json({
       message: "Login successful!",
@@ -131,32 +153,26 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-function publicPlayer(user) {
-  return {
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    coins: user.coins,
-    diamonds: user.diamonds,
-    character: user.character,
-    purchases: user.purchases
-  };
-}
-
 function authenticate(req, res, next) {
-  const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-
   try {
-    const decoded = jwt.verify(token, SECRET);
+    const header = req.headers.authorization || "";
+    const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+
+    const decoded = jwt.verify(
+      token,
+      SECRET || "development-only-secret"
+    );
+
     const user = readUsers().find(u => u.id === decoded.id);
 
-    if (!user) return res.status(401).json({ error: "Account not found." });
+    if (!user) {
+      return res.status(401).json({ error: "Account not found." });
+    }
 
     req.user = user;
     next();
   } catch {
-    return res.status(401).json({ error: "Please log in again." });
+    res.status(401).json({ error: "Please log in again." });
   }
 }
 
@@ -164,12 +180,62 @@ app.get("/api/profile", authenticate, (req, res) => {
   res.json({ player: publicPlayer(req.user) });
 });
 
-app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/api/")) return next();
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+// Save male/female selection.
+app.post("/api/character", authenticate, (req, res) => {
+  const { character } = req.body;
+
+  if (!["male", "female"].includes(character)) {
+    return res.status(400).json({ error: "Invalid character." });
+  }
+
+  const users = readUsers();
+  const user = users.find(u => u.id === req.user.id);
+
+  user.character = character;
+  saveUsers(users);
+
+  res.json({ player: publicPlayer(user) });
 });
 
-// Matchmaking: rooms contain 2–10 players.
+// Purchase and save character skins.
+const skinPrices = {
+  "Army Soldier": 0,
+  "Shadow Warrior": 250,
+  "Fire Warrior": 400,
+  "Cyber Soldier": 600,
+  "Golden Warrior": 900
+};
+
+app.post("/api/shop/buy", authenticate, (req, res) => {
+  const { item } = req.body;
+  const price = skinPrices[item];
+
+  if (price === undefined) {
+    return res.status(400).json({ error: "Unknown shop item." });
+  }
+
+  const users = readUsers();
+  const user = users.find(u => u.id === req.user.id);
+
+  if (user.purchases.includes(item)) {
+    return res.json({ message: "Already owned.", player: publicPlayer(user) });
+  }
+
+  if (user.coins < price) {
+    return res.status(400).json({ error: "Not enough coins." });
+  }
+
+  user.coins -= price;
+  user.purchases.push(item);
+  saveUsers(users);
+
+  res.json({
+    message: "Purchase successful!",
+    player: publicPlayer(user)
+  });
+});
+
+// Basic matchmaking, maximum 10 players per match.
 const waitingPlayers = [];
 const playerRooms = new Map();
 
@@ -181,34 +247,35 @@ io.on("connection", socket => {
       waitingPlayers.push(socket.id);
     }
 
-    let available = waitingPlayers
+    const available = waitingPlayers
       .filter(id => io.sockets.sockets.has(id))
       .slice(0, 10);
 
-    if (available.length >= 2) {
-      available.forEach(id => {
-        const index = waitingPlayers.indexOf(id);
-        if (index !== -1) waitingPlayers.splice(index, 1);
-      });
-
-      const roomId = "AQB-" + Date.now();
-      const room = io.sockets.adapter.rooms;
-
-      available.forEach(id => {
-        const playerSocket = io.sockets.sockets.get(id);
-        if (playerSocket) {
-          playerSocket.join(roomId);
-          playerRooms.set(id, roomId);
-        }
-      });
-
-      io.to(roomId).emit("match-found", {
-        roomId,
-        players: available.length
-      });
-    } else {
+    if (available.length < 2) {
       socket.emit("waiting-for-players");
+      return;
     }
+
+    available.forEach(id => {
+      const index = waitingPlayers.indexOf(id);
+      if (index !== -1) waitingPlayers.splice(index, 1);
+    });
+
+    const roomId = "AQB-" + require("crypto").randomUUID();
+
+    available.forEach(id => {
+      const playerSocket = io.sockets.sockets.get(id);
+
+      if (playerSocket) {
+        playerSocket.join(roomId);
+        playerRooms.set(id, roomId);
+      }
+    });
+
+    io.to(roomId).emit("match-found", {
+      roomId,
+      players: available.length
+    });
   });
 
   socket.on("cancel-match", () => {
@@ -216,29 +283,32 @@ io.on("connection", socket => {
     if (index !== -1) waitingPlayers.splice(index, 1);
   });
 
-  socket.on("player-move", data => {
-    const roomId = playerRooms.get(socket.id);
-    if (!roomId || !data || typeof data !== "object") return;
-
-    socket.to(roomId).emit("opponent-move", {
-      playerId: socket.id,
-      position: data.position,
-      rotation: data.rotation
-    });
-  });
-
   socket.on("disconnect", () => {
     const index = waitingPlayers.indexOf(socket.id);
     if (index !== -1) waitingPlayers.splice(index, 1);
 
     const roomId = playerRooms.get(socket.id);
+
     if (roomId) {
-      socket.to(roomId).emit("player-left", { playerId: socket.id });
+      socket.to(roomId).emit("player-left", {
+        playerId: socket.id
+      });
       playerRooms.delete(socket.id);
     }
   });
 });
 
+// Unknown API routes return JSON errors.
+app.use("/api", (req, res) => {
+  res.status(404).json({ error: "API route not found." });
+});
+
+// Send the game homepage for other browser routes.
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 server.listen(PORT, () => {
-  console.log(AQBATTLE server running on port ${PORT});
+  console.log(AQBATTLE running on port ${PORT});
+  console.log("MADE BY BELLO QUADRI AYOMIDE");
 });
