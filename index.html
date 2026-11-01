@@ -1,790 +1,156 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-<title>AQBATTLE - Battle Royale</title>
-
-<style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: Arial, Helvetica, sans-serif;
-  user-select: none;
-}
-
-body {
-  background: #10151c;
-  color: white;
-  overflow: hidden;
-  height: 100vh;
-}
-
-/* MAIN BACKGROUND */
-
-#app {
-  width: 100%;
-  height: 100dvh;
-  position: relative;
-  overflow: hidden;
-  background:
-    linear-gradient(90deg, rgba(0,0,0,.85), transparent 65%),
-    linear-gradient(0deg, rgba(0,0,0,.85), transparent 60%),
-    url("https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=1920&q=85")
-    center/cover no-repeat;
-}
-
-/* TOP BAR */
-
-.topbar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 75px;
-  background: rgba(0,0,0,.75);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 25px;
-  z-index: 10;
-  border-bottom: 1px solid #ffffff22;
-}
-
-.logo {
-  font-size: 29px;
-  font-weight: 1000;
-  color: #ffb000;
-  font-style: italic;
-  letter-spacing: 2px;
-  text-shadow: 2px 2px #8d2100;
-}
-
-.logo span {
-  color: white;
-}
-
-.profile {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.avatar {
-  width: 43px;
-  height: 43px;
-  background: linear-gradient(135deg,#ffb000,#a52a00);
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 22px;
-  border: 2px solid white;
-}
-
-.profile-info {
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.profile-info strong {
-  font-size: 14px;
-}
-
-.currency {
-  display: flex;
-  gap: 12px;
-}
-
-.currency div {
-  padding: 10px 13px;
-  background: #252b35;
-  border: 1px solid #ffffff33;
-  border-radius: 5px;
-  font-weight: bold;
-  font-size: 13px;
-}
-
-.gold { color: #ffc400; }
-.diamond { color: #38d8ff; }
-
-/* MAIN CONTENT */
-
-.content {
-  position: absolute;
-  top: 100px;
-  left: 25px;
-  bottom: 105px;
-  width: 230px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 5;
-}
-
-.section-title {
-  color: #ffbd00;
-  font-weight: 900;
-  font-size: 17px;
-  margin-bottom: 8px;
-}
-
-.menu-btn {
-  background: linear-gradient(90deg,#262d37,#141a22);
-  color: white;
-  border: 1px solid #ffffff33;
-  padding: 15px;
-  text-align: left;
-  cursor: pointer;
-  font-weight: bold;
-  border-left: 4px solid #ffb000;
-  transition: .2s;
-}
-
-.menu-btn:hover,
-.menu-btn.active {
-  background: linear-gradient(90deg,#bd6500,#572800);
-  transform: translateX(5px);
-}
-
-/* CHARACTER */
-
-.character-area {
-  position: absolute;
-  left: 50%;
-  top: 52%;
-  transform: translate(-50%,-50%);
-  text-align: center;
-  width: min(500px, 60vw);
-  z-index: 2;
-}
-
-.character {
-  width: 100%;
-  max-height: 66vh;
-  object-fit: contain;
-  filter: drop-shadow(0 10px 20px #000);
-}
-
-.character-name {
-  font-size: 25px;
-  font-weight: 900;
-  color: #ffbd00;
-  text-shadow: 2px 2px black;
-}
-
-/* MODE PANEL */
-
-.mode-panel {
-  position: absolute;
-  right: 25px;
-  bottom: 105px;
-  width: 250px;
-  background: rgba(0,0,0,.8);
-  padding: 18px;
-  border: 1px solid #ffffff33;
-  border-radius: 6px;
-  z-index: 5;
-}
-
-.mode-panel h2 {
-  color: #ffbd00;
-  font-size: 19px;
-  margin-bottom: 12px;
-}
-
-.mode {
-  padding: 12px;
-  margin-bottom: 8px;
-  background: #242a34;
-  border: 1px solid #ffffff22;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.mode.selected {
-  border: 2px solid #ffb000;
-  background: #60400b;
-}
-
-/* PLAY BUTTON */
-
-.play-button {
-  width: 100%;
-  margin-top: 10px;
-  padding: 17px;
-  background: linear-gradient(90deg,#ff9b00,#ffdd00);
-  border: none;
-  color: black;
-  font-size: 21px;
-  font-weight: 1000;
-  cursor: pointer;
-  box-shadow: 0 4px 0 #9d5100;
-  border-radius: 4px;
-}
-
-.play-button:hover {
-  filter: brightness(1.2);
-}
-
-/* BOTTOM NAVIGATION */
-
-.bottom-nav {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 75px;
-  background: rgba(0,0,0,.9);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 30px;
-  border-top: 1px solid #ffffff22;
-  z-index: 10;
-}
-
-.nav-item {
-  color: #aaa;
-  font-size: 13px;
-  font-weight: bold;
-  cursor: pointer;
-  text-align: center;
-}
-
-.nav-item span {
-  display: block;
-  font-size: 23px;
-  margin-bottom: 4px;
-}
-
-.nav-item:hover,
-.nav-item.active {
-  color: #ffbd00;
-}
-
-/* POPUP */
-
-.popup {
-  display: none;
-  position: absolute;
-  inset: 0;
-  z-index: 50;
-  background: rgba(0,0,0,.85);
-  justify-content: center;
-  align-items: center;
-  padding: 15px;
-}
-
-.popup-box {
-  background: #1d2530;
-  width: min(500px,100%);
-  max-height: 85vh;
-  overflow-y: auto;
-  padding: 25px;
-  border: 2px solid #ffb000;
-  border-radius: 8px;
-}
-
-.popup-box h2 {
-  color: #ffbd00;
-  margin-bottom: 18px;
-}
-
-.close {
-  float: right;
-  font-size: 25px;
-  cursor: pointer;
-}
-
-.item-grid {
-  display: grid;
-  grid-template-columns: repeat(2,1fr);
-  gap: 12px;
-}
-
-.item {
-  background: #303b49;
-  padding: 15px;
-  text-align: center;
-  border: 1px solid #ffffff22;
-  border-radius: 5px;
-}
-
-.item button,
-.popup-action {
-  margin-top: 10px;
-  background: #ffb000;
-  border: none;
-  padding: 10px;
-  width: 100%;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-/* MOBILE */
-
-@media(max-width:750px) {
-  .topbar {
-    padding: 0 10px;
-    height: 60px;
-  }
-
-  .logo { font-size: 20px; }
-
-  .profile-info { display: none; }
-
-  .avatar {
-    width: 34px;
-    height: 34px;
-  }
-
-  .currency {
-    gap: 5px;
-  }
-
-  .currency div {
-    padding: 7px;
-    font-size: 10px;
-  }
-
-  .content {
-    top: 75px;
-    left: 8px;
-    width: 125px;
-    bottom: 85px;
-    gap: 6px;
-  }
-
-  .menu-btn {
-    font-size: 10px;
-    padding: 10px 6px;
-  }
-
-  .section-title {
-    font-size: 12px;
-  }
-
-  .character-area {
-    left: 53%;
-    width: 55vw;
-  }
-
-  .character {
-    max-height: 48vh;
-  }
-
-  .character-name {
-    font-size: 15px;
-  }
-
-  .mode-panel {
-    right: 8px;
-    bottom: 85px;
-    width: 145px;
-    padding: 8px;
-  }
-
-  .mode-panel h2 {
-    font-size: 12px;
-  }
-
-  .mode {
-    padding: 8px;
-    font-size: 10px;
-  }
-
-  .play-button {
-    font-size: 14px;
-    padding: 12px 4px;
-  }
-
-  .bottom-nav {
-    height: 65px;
-    gap: 0;
-    justify-content: space-around;
-  }
-
-  .nav-item {
-    font-size: 9px;
-  }
-
-  .nav-item span {
-    font-size: 19px;
-  }
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#10151f">
+  <title>AQBATTLE - Battle Royale</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<div id="app">
-
-  <!-- TOP BAR -->
-
   <header class="topbar">
-
-    <div class="logo">
-      AQ<span>BATTLE</span>
+    <div class="logo">AQ<span>BATTLE</span></div>
+    <div id="accountBar" class="account-bar hidden">
+      <span id="playerName"></span>
+      <button id="logoutBtn" class="small-button">LOG OUT</button>
     </div>
-
-    <div class="profile">
-      <div class="avatar">👤</div>
-      <div class="profile-info">
-        <strong id="playerName">AQ PLAYER</strong><br>
-        LEVEL <span id="playerLevel">1</span>
-      </div>
-    </div>
-
-    <div class="currency">
-      <div class="gold">🪙 <span id="coins">5000</span> +</div>
-      <div class="diamond">💎 <span id="diamonds">500</span> +</div>
-    </div>
-
   </header>
 
-  <!-- LEFT MENU -->
+  <main>
+    <!-- LOGIN -->
+    <section id="authScreen" class="screen auth-screen">
+      <div class="auth-card">
+        <h1>WELCOME TO <span>AQBATTLE</span></h1>
+        <p>Enter the battlefield. Become a legend.</p>
 
-  <aside class="content">
+        <div class="auth-tabs">
+          <button id="loginTab" class="active">LOGIN</button>
+          <button id="registerTab">CREATE ACCOUNT</button>
+        </div>
 
-    <div class="section-title">BATTLE MENU</div>
+        <form id="authForm">
+          <div id="usernameGroup" class="hidden">
+            <label>Username</label>
+            <input id="username" type="text" maxlength="20"
+              placeholder="Choose a username">
+          </div>
 
-    <button class="menu-btn active" onclick="openGame()">⚔ START GAME</button>
-    <button class="menu-btn" onclick="openPopup('characters')">👤 CHARACTERS</button>
-    <button class="menu-btn" onclick="openPopup('weapons')">🔫 WEAPONS</button>
-    <button class="menu-btn" onclick="openPopup('skins')">🎭 SKINS</button>
-    <button class="menu-btn" onclick="openPopup('shop')">🛒 SHOP</button>
-    <button class="menu-btn" onclick="openPopup('inventory')">🎒 INVENTORY</button>
-    <button class="menu-btn" onclick="openPopup('profile')">🏆 PROFILE</button>
+          <label>Email address</label>
+          <input id="email" type="email" required
+            placeholder="Enter your email">
 
-  </aside>
+          <label>Password</label>
+          <input id="password" type="password" required
+            placeholder="Enter your password">
 
-  <!-- CHARACTER DISPLAY -->
+          <button type="submit" id="authSubmit" class="main-button">
+            LOGIN
+          </button>
+          <p id="authMessage" class="message"></p>
+        </form>
+      </div>
+    </section>
 
-  <main class="character-area">
+    <!-- LOBBY -->
+    <section id="lobbyScreen" class="screen hidden">
+      <div class="lobby-heading">
+        <div>
+          <p class="eyebrow">WELCOME TO THE BATTLEFIELD</p>
+          <h1>YOUR <span>LOBBY</span></h1>
+        </div>
+        <div class="wallet">
+          <span>🪙 <b id="coinBalance">1,000</b></span>
+          <span>💎 <b id="diamondBalance">0</b></span>
+        </div>
+      </div>
 
-    <img
-      class="character"
-      id="mainCharacter"
-      src="https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&w=700&q=85"
-      alt="AQBATTLE character"
-    >
+      <div class="lobby-grid">
+        <div class="character-panel">
+          <p class="eyebrow">YOUR CHARACTER</p>
+          <div id="characterPreview" class="character-preview">
+            <div class="character-icon">🪖</div>
+            <h2 id="characterName">SOLDIER</h2>
+          </div>
 
-    <div class="character-name" id="characterName">
-      AQ WARRIOR
-    </div>
+          <div class="character-choice">
+            <button class="choice-button active" data-character="male">MALE</button>
+            <button class="choice-button" data-character="female">FEMALE</button>
+          </div>
 
+          <button id="shopBtn" class="main-button">OPEN SHOP</button>
+        </div>
+
+        <div class="battle-panel">
+          <p class="eyebrow">CHOOSE YOUR BATTLE</p>
+          <h2>BATTLE ROYALE</h2>
+          <p>Enter the arena. Fight to survive.</p>
+
+          <div class="mode-buttons">
+            <button class="mode-button active" data-mode="solo">SOLO</button>
+            <button class="mode-button" data-mode="duo">DUO</button>
+            <button class="mode-button" data-mode="squad">SQUAD</button>
+          </div>
+
+          <button id="battleBtn" class="battle-button">
+            START BATTLE
+          </button>
+          <p id="matchMessage" class="message"></p>
+        </div>
+      </div>
+
+      <section id="shopPanel" class="shop-panel hidden">
+        <div class="section-heading">
+          <h2>CHARACTER SHOP</h2>
+          <button id="closeShopBtn" class="small-button">CLOSE</button>
+        </div>
+        <div id="shopItems" class="shop-items"></div>
+      </section>
+    </section>
+
+    <!-- ARENA -->
+    <section id="arenaScreen" class="screen hidden">
+      <div class="arena-heading">
+        <div>
+          <p class="eyebrow">AQBATTLE ARENA</p>
+          <h2>PREPARE FOR BATTLE</h2>
+        </div>
+        <button id="leaveArenaBtn" class="small-button">LEAVE ARENA</button>
+      </div>
+
+      <div id="gameContainer">
+        <div id="gameLoading">LOADING BATTLEFIELD...</div>
+        <div id="gameHud" class="game-hud">
+          <span>❤️ <b id="healthValue">100</b></span>
+          <span>🔫 <b id="weaponValue">PISTOL</b></span>
+          <span>🤖 <b id="botCount">0</b> ENEMIES</span>
+        </div>
+
+        <div id="mobileControls" class="mobile-controls">
+          <div class="movement-controls">
+            <button id="forwardBtn">▲</button>
+            <div>
+              <button id="leftBtn">◀️</button>
+              <button id="backBtn">▼</button>
+              <button id="rightBtn">▶️</button>
+            </div>
+          </div>
+
+          <div class="action-controls">
+            <button id="jumpBtn">JUMP</button>
+            <button id="fireBtn" class="fire-button">FIRE</button>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <!-- GAME MODE -->
-
-  <section class="mode-panel">
-
-    <h2>SELECT GAME MODE</h2>
-
-    <div class="mode selected" onclick="selectMode(this,'Battle Royale')">
-      🌍 BATTLE ROYALE
-    </div>
-
-    <div class="mode" onclick="selectMode(this,'Clash Squad')">
-      ⚔ CLASH SQUAD
-    </div>
-
-    <div class="mode" onclick="selectMode(this,'Training')">
-      🎯 TRAINING
-    </div>
-
-    <button class="play-button" onclick="startMatch()">
-      START MATCH ▶
-    </button>
-
-  </section>
-
-  <!-- BOTTOM NAVIGATION -->
-
-  <nav class="bottom-nav">
-
-    <div class="nav-item active" onclick="closePopup()">
-      <span>🏠</span>HOME
-    </div>
-
-    <div class="nav-item" onclick="openPopup('characters')">
-      <span>👤</span>CHARACTER
-    </div>
-
-    <div class="nav-item" onclick="openPopup('weapons')">
-      <span>🔫</span>WEAPONS
-    </div>
-
-    <div class="nav-item" onclick="openPopup('shop')">
-      <span>🛒</span>SHOP
-    </div>
-
-    <div class="nav-item" onclick="openPopup('profile')">
-      <span>🏆</span>RANK
-    </div>
-
-  </nav>
-
-  <!-- POPUP -->
-
-  <div class="popup" id="popup">
-
-    <div class="popup-box">
-
-      <span class="close" onclick="closePopup()">✖</span>
-
-      <h2 id="popupTitle">AQBATTLE</h2>
-
-      <div id="popupContent"></div>
-
-    </div>
-
-  </div>
-
-</div>
-
-<script>
-/* ==================================
-   AQBATTLE LOBBY SYSTEM
-================================== */
-
-let selectedMode = "Battle Royale";
-
-let player = {
-  name: localStorage.getItem("aqName") || "AQ PLAYER",
-  level: Number(localStorage.getItem("aqLevel")) || 1,
-  coins: Number(localStorage.getItem("aqCoins")) || 5000,
-  diamonds: Number(localStorage.getItem("aqDiamonds")) || 500,
-  character: "AQ WARRIOR",
-  gender: "Male",
-  inventory: []
-};
-
-const characterImages = {
-  Male: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&w=700&q=85",
-  Female: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=700&q=85"
-};
-
-function savePlayer() {
-  localStorage.setItem("aqName", player.name);
-  localStorage.setItem("aqLevel", player.level);
-  localStorage.setItem("aqCoins", player.coins);
-  localStorage.setItem("aqDiamonds", player.diamonds);
-  updateProfile();
-}
-
-function updateProfile() {
-  document.getElementById("playerName").textContent = player.name;
-  document.getElementById("playerLevel").textContent = player.level;
-  document.getElementById("coins").textContent = player.coins;
-  document.getElementById("diamonds").textContent = player.diamonds;
-}
-
-function selectMode(element, mode) {
-  document.querySelectorAll(".mode").forEach(item => {
-    item.classList.remove("selected");
-  });
-
-  element.classList.add("selected");
-  selectedMode = mode;
-}
-
-function openPopup(type) {
-  const popup = document.getElementById("popup");
-  const title = document.getElementById("popupTitle");
-  const content = document.getElementById("popupContent");
-
-  popup.style.display = "flex";
-
-  if (type === "characters") {
-    title.textContent = "CHARACTER SELECTION";
-
-    content.innerHTML = `
-      <div class="item-grid">
-        <div class="item">
-          <div style="font-size:50px">🧔</div>
-          <h3>MALE WARRIOR</h3>
-          <button onclick="chooseCharacter('Male')">SELECT</button>
-        </div>
-
-        <div class="item">
-          <div style="font-size:50px">👩</div>
-          <h3>FEMALE WARRIOR</h3>
-          <button onclick="chooseCharacter('Female')">SELECT</button>
-        </div>
-      </div>
-    `;
-  }
-
-  if (type === "weapons") {
-    title.textContent = "WEAPON ARMOURY";
-
-    content.innerHTML = `
-      <div class="item-grid">
-        ${makeItem("AK47","🔫",0)}
-        ${makeItem("M4A1","🎯",0)}
-        ${makeItem("SNIPER","🔭",0)}
-        ${makeItem("SHOTGUN","💥",0)}
-      </div>
-    `;
-  }
-
-  if (type === "skins") {
-    title.textContent = "CHARACTER SKINS";
-
-    content.innerHTML = `
-      <div class="item-grid">
-        ${makeItem("GOLD WARRIOR","🥇",1500)}
-        ${makeItem("SHADOW SOLDIER","🥷",2000)}
-        ${makeItem("ELITE COMMANDER","🪖",2500)}
-        ${makeItem("FIRE LEGEND","🔥",3000)}
-      </div>
-    `;
-  }
-
-  if (type === "shop") {
-    title.textContent = "AQBATTLE SHOP";
-
-    content.innerHTML = `
-      <div class="item-grid">
-        ${makeItem("1000 COINS","🪙",0)}
-        ${makeItem("ELITE SKIN","👑",2000)}
-        ${makeItem("DIAMOND PACK","💎",0)}
-        ${makeItem("SPECIAL WEAPON","🔫",3000)}
-      </div>
-      <p style="margin-top:15px;color:#aaa">
-        Demo shop: real-money payments are not enabled.
-      </p>
-    `;
-  }
-
-  if (type === "inventory") {
-    title.textContent = "YOUR INVENTORY";
-
-    content.innerHTML = `
-      <p>Owned items:</p>
-      ${player.inventory.length ?
-        player.inventory.map(item => `<p>✓ ${escapeHTML(item)}</p>`).join("") :
-        "<p>No items purchased yet.</p>"}
-    `;
-  }
-
-  if (type === "profile") {
-    title.textContent = "PLAYER PROFILE";
-
-    content.innerHTML = `
-      <h3>${escapeHTML(player.name)}</h3>
-      <p>LEVEL: ${player.level}</p>
-      <p>GOLD: ${player.coins}</p>
-      <p>DIAMONDS: ${player.diamonds}</p>
-      <p>CHARACTER: ${player.gender}</p>
-      <br>
-      <input id="newName" placeholder="Enter player name"
-      maxlength="18"
-      style="width:100%;padding:12px">
-      <button class="popup-action" onclick="changeName()">
-      UPDATE NAME
-      </button>
-    `;
-  }
-}
-
-function makeItem(name, icon, price) {
-  return `
-    <div class="item">
-      <div style="font-size:40px">${icon}</div>
-      <h3>${name}</h3>
-      <p>${price ? "🪙 "+price : "FREE"}</p>
-      <button onclick="buyItem('${name}',${price})">
-        ${price ? "PURCHASE" : "SELECT"}
-      </button>
-    </div>
-  `;
-}
-
-function escapeHTML(value) {
-  return String(value).replace(/[&<>"']/g, c => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",
-    '"':"&quot;","'":"&#39;"
-  })[c]);
-}
-
-function buyItem(name, price) {
-  if (player.inventory.includes(name)) {
-    alert("You already own this item!");
-    return;
-  }
-
-  if (price > 0 && player.coins < price) {
-    alert("Not enough coins!");
-    return;
-  }
-
-  if (price > 0) player.coins -= price;
-
-  player.inventory.push(name);
-  savePlayer();
-  alert(name + " added to your inventory!");
-}
-
-function chooseCharacter(gender) {
-  player.gender = gender;
-  player.character = gender === "Male" ?
-    "AQ WARRIOR" : "AQ QUEEN";
-
-  document.getElementById("characterName").textContent =
-    player.character;
-
-  document.getElementById("mainCharacter").src =
-    characterImages[gender];
-
-  savePlayer();
-  closePopup();
-}
-
-function changeName() {
-  const input = document.getElementById("newName");
-  const name = input.value.trim();
-
-  if (!name) {
-    alert("Enter a player name.");
-    return;
-  }
-
-  player.name = name;
-  savePlayer();
-  closePopup();
-}
-
-function closePopup() {
-  document.getElementById("popup").style.display = "none";
-}
-
-/* ==================================
-   START MATCH
-================================== */
-
-function startMatch() {
-  const confirmation = confirm(
-    "Enter AQBATTLE " + selectedMode + "?"
-  );
-
-  if (!confirmation) return;
-
-  // Load your actual 3D game engine.
-  if (typeof window.startAQBattle === "function") {
-    window.startAQBattle(selectedMode);
-  } else {
-    window.location.href = "/game.html?mode=" +
-      encodeURIComponent(selectedMode);
-  }
-}
-
-updateProfile();
-</script>
-
+  <footer>
+    <p>MADE BY BELLO QUADRI AYOMIDE</p>
+    <p>© 2026 AQBATTLE</p>
+  </footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="game.js"></script>
 </body>
 </html>
