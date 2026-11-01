@@ -4,8 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AQBATTLE</title>
+
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -16,6 +20,7 @@
       place-items: center;
       padding: 20px;
     }
+
     .panel {
       width: min(100%, 480px);
       padding: 30px;
@@ -24,8 +29,18 @@
       background: #1b2833;
       text-align: center;
     }
-    h1 { color: #ffb000; font-size: 42px; margin: 0 0 8px; }
-    .subtitle { color: #c5d0d8; margin-bottom: 28px; }
+
+    h1 {
+      color: #ffb000;
+      font-size: 42px;
+      margin: 0 0 8px;
+    }
+
+    .subtitle {
+      color: #c5d0d8;
+      margin-bottom: 28px;
+    }
+
     input {
       width: 100%;
       padding: 14px;
@@ -36,6 +51,7 @@
       color: white;
       font-size: 16px;
     }
+
     button {
       width: 100%;
       padding: 14px;
@@ -48,36 +64,80 @@
       font-weight: bold;
       cursor: pointer;
     }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    #status { min-height: 24px; color: #ffcf66; margin-top: 18px; }
-    .credit { margin-top: 30px; font-size: 13px; color: #c5d0d8; }
-    #lobby { display: none; }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    #status {
+      min-height: 24px;
+      color: #ffcf66;
+      margin-top: 18px;
+    }
+
+    .credit {
+      margin-top: 30px;
+      font-size: 13px;
+      color: #c5d0d8;
+    }
+
+    #lobby {
+      display: none;
+    }
   </style>
 </head>
+
 <body>
+
   <main class="panel">
+
     <h1>AQBATTLE</h1>
-    <p class="subtitle">ENTER THE BATTLE. FIGHT TO SURVIVE.</p>
+
+    <p class="subtitle">
+      ENTER THE BATTLE. FIGHT TO SURVIVE.
+    </p>
 
     <section id="login">
-      <input id="username" maxlength="20" placeholder="Choose your username">
-      <button id="enter">ENTER AQBATTLE</button>
+      <input
+        id="username"
+        maxlength="20"
+        placeholder="Choose your username"
+      >
+
+      <button id="enter">
+        ENTER AQBATTLE
+      </button>
     </section>
 
     <section id="lobby">
       <h2 id="welcome"></h2>
+
       <p>Welcome to the battle lobby.</p>
-      <button id="find">FIND MATCH (2–10 PLAYERS)</button>
-      <button id="leave">LOG OUT</button>
+
+      <button id="find">
+        FIND MATCH (2–10 PLAYERS)
+      </button>
+
+      <button id="leave">
+        LOG OUT
+      </button>
     </section>
 
     <p id="status">Ready to play?</p>
-    <p class="credit">MADE BY BELLO QUADRI AYOMIDE</p>
+
+    <p class="credit">
+      MADE BY BELLO QUADRI AYOMIDE
+    </p>
+
   </main>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <!-- Connect to the Render server -->
+  <script src="https://aqbattle-server.onrender.com/socket.io/socket.io.js"></script>
+
   <script>
-    const socket = io();
+    const socket = io("https://aqbattle-server.onrender.com");
+
     const login = document.getElementById("login");
     const lobby = document.getElementById("lobby");
     const username = document.getElementById("username");
@@ -85,18 +145,29 @@
 
     document.getElementById("enter").onclick = () => {
       const name = username.value.trim();
+
       if (!name) {
         status.textContent = "Please enter a username.";
         return;
       }
-      document.getElementById("welcome").textContent = "Welcome, " + name + "!";
+
+      document.getElementById("welcome").textContent =
+        "Welcome, " + name + "!";
+
       login.style.display = "none";
       lobby.style.display = "block";
+
       status.textContent = "You are connected to AQBATTLE.";
     };
 
     document.getElementById("find").onclick = () => {
+      if (!socket.connected) {
+        status.textContent = "Server connection lost. Please wait.";
+        return;
+      }
+
       status.textContent = "Searching for other players...";
+
       socket.emit("find-match");
     };
 
@@ -106,6 +177,10 @@
 
     socket.on("connect", () => {
       status.textContent = "Connected to AQBATTLE server.";
+    });
+
+    socket.on("connect_error", () => {
+      status.textContent = "Unable to connect. Please refresh the page.";
     });
 
     socket.on("disconnect", () => {
@@ -118,9 +193,12 @@
 
     socket.on("match-found", match => {
       status.textContent =
-        "Match found! " + match.players + " players joined. Game arena coming next.";
+        "Match found! " + match.players +
+        " players joined. Game arena coming next.";
     });
   </script>
-<script type="module" src="/game.js"></script>
+
+  <script type="module" src="/game.js"></script>
+
 </body>
 </html>
