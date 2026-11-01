@@ -5,32 +5,26 @@ scene.background = new THREE.Color(0x87ceeb);
 scene.fog = new THREE.Fog(0x87ceeb, 45, 150);
 
 const camera = new THREE.PerspectiveCamera(
-  70, window.innerWidth / window.innerHeight, 0.1, 300
+  70, innerWidth / innerHeight, 0.1, 300
 );
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 
 const game = document.createElement("div");
-game.id = "aqbattle-game";
-game.style.cssText = `
-  position:fixed;
-  inset:0;
-  z-index:10;
-  display:none;
-  touch-action:none;
-`;
+game.style.cssText =
+  "position:fixed;inset:0;z-index:10;display:none;touch-action:none;";
 game.appendChild(renderer.domElement);
 document.body.appendChild(game);
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0x526b38, 2));
 
-const sunlight = new THREE.DirectionalLight(0xffffff, 2);
-sunlight.position.set(20, 30, 10);
-sunlight.castShadow = true;
-scene.add(sunlight);
+const sun = new THREE.DirectionalLight(0xffffff, 2);
+sun.position.set(20, 30, 10);
+sun.castShadow = true;
+scene.add(sun);
 
 // Ground
 const ground = new THREE.Mesh(
@@ -40,43 +34,6 @@ const ground = new THREE.Mesh(
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
-
-// Soldier
-const soldier = new THREE.Group();
-
-const uniform = new THREE.MeshStandardMaterial({ color: 0x263d32 });
-const skin = new THREE.MeshStandardMaterial({ color: 0xb9815b });
-
-const body = new THREE.Mesh(
-  new THREE.BoxGeometry(0.8, 1.2, 0.45), uniform
-);
-body.position.y = 1.35;
-soldier.add(body);
-
-const head = new THREE.Mesh(
-  new THREE.SphereGeometry(0.32, 24, 24), skin
-);
-head.position.y = 2.15;
-soldier.add(head);
-
-const legs = new THREE.Mesh(
-  new THREE.BoxGeometry(0.65, 0.9, 0.4), uniform
-);
-legs.position.y = 0.45;
-soldier.add(legs);
-
-// Simple weapon
-const weapon = new THREE.Mesh(
-  new THREE.BoxGeometry(0.18, 0.18, 0.9),
-  new THREE.MeshStandardMaterial({ color: 0x222222 })
-);
-weapon.position.set(0.48, 1.45, -0.35);
-soldier.add(weapon);
-
-soldier.traverse(object => {
-  if (object.isMesh) object.castShadow = true;
-});
-scene.add(soldier);
 
 // Trees
 for (let i = 0; i < 45; i++) {
@@ -99,7 +56,8 @@ for (let i = 0; i < 45; i++) {
   const angle = Math.random() * Math.PI * 2;
   const distance = 12 + Math.random() * 65;
   tree.position.set(
-    Math.cos(angle) * distance, 0,
+    Math.cos(angle) * distance,
+    0,
     Math.sin(angle) * distance
   );
   scene.add(tree);
@@ -117,18 +75,57 @@ for (let i = 0; i < 8; i++) {
     (Math.random() - 0.5) * 65
   );
   building.castShadow = true;
-  building.receiveShadow = true;
   scene.add(building);
 }
 
+// Create soldier
+function createSoldier(color) {
+  const soldier = new THREE.Group();
+
+  const uniform = new THREE.MeshStandardMaterial({ color });
+  const skin = new THREE.MeshStandardMaterial({ color: 0xb9815b });
+
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, 1.2, 0.45), uniform
+  );
+  body.position.y = 1.35;
+  soldier.add(body);
+
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.32, 16, 16), skin
+  );
+  head.position.y = 2.15;
+  soldier.add(head);
+
+  const legs = new THREE.Mesh(
+    new THREE.BoxGeometry(0.65, 0.9, 0.4), uniform
+  );
+  legs.position.y = 0.45;
+  soldier.add(legs);
+
+  soldier.traverse(object => {
+    if (object.isMesh) object.castShadow = true;
+  });
+
+  return soldier;
+}
+
+const player = createSoldier(0x263d32);
+scene.add(player);
+
 camera.position.set(0, 4, 7);
 
-// Controls
-const keys = {};
+// Game state
 let started = false;
+let mode = "";
+let health = 100;
+let score = 0;
+let bots = [];
+let bullets = [];
+let lastAttack = 0;
 let joystickX = 0;
 let joystickY = 0;
-const bullets = [];
+const keys = {};
 
 window.addEventListener("keydown", e => {
   keys[e.key.toLowerCase()] = true;
@@ -138,169 +135,189 @@ window.addEventListener("keyup", e => {
   keys[e.key.toLowerCase()] = false;
 });
 
-// Arena
-function enterArena() {
-  if (started) return;
-  started = true;
+// HUD
+const hud = document.createElement("div");
+hud.style.cssText = `
+  position:absolute;top:15px;left:15px;
+  color:white;font:bold 18px Arial;
+  text-shadow:2px 2px 4px black;
+  pointer-events:none;line-height:1.6;
+`;
+game.appendChild(hud);
 
-  game.style.display = "block";
+function updateHUD() {
+  hud.innerHTML =
+    AQBATTLE<br>${mode.toUpperCase()}<br> +
+    HEALTH: ${health}<br> +
+    BOTS LEFT: ${bots.filter(b => b.alive).length}<br> +
+    ELIMINATIONS: ${score};
+}
 
-  const panel = document.querySelector(".panel");
-  if (panel) panel.style.display = "none";
+// Create enemy bots
+function createBots() {
+  bots = [];
 
-  // Arena label
-  const label = document.createElement("div");
-  label.textContent = "AQBATTLE | ARENA";
-  label.style.cssText = `
-    position:absolute;top:15px;left:15px;
-    color:white;font:bold 18px Arial;
-    text-shadow:2px 2px 4px black;
-    pointer-events:none;
-  `;
-  game.appendChild(label);
+  for (let i = 0; i < 10; i++) {
+    const bot = createSoldier(0x9b2525);
 
-  // Joystick base
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 15 + Math.random() * 35;
+
+    bot.position.set(
+      Math.cos(angle) * distance,
+      0,
+      Math.sin(angle) * distance
+    );
+
+    scene.add(bot);
+
+    bots.push({
+      mesh: bot,
+      alive: true,
+      attackTime: 0
+    });
+  }
+}
+
+// Joystick
+function createControls() {
   const base = document.createElement("div");
   base.style.cssText = `
-    position:absolute;
-    left:25px;
-    bottom:35px;
-    width:130px;
-    height:130px;
-    border-radius:50%;
+    position:absolute;left:25px;bottom:35px;
+    width:130px;height:130px;border-radius:50%;
     background:rgba(20,30,35,.55);
-    border:3px solid rgba(255,255,255,.8);
-    touch-action:none;
+    border:3px solid white;touch-action:none;
   `;
   game.appendChild(base);
 
-  // Joystick knob
   const knob = document.createElement("div");
   knob.style.cssText = `
-    position:absolute;
-    width:55px;
-    height:55px;
-    left:35px;
-    top:35px;
-    border-radius:50%;
-    background:rgba(255,176,0,.9);
-    border:3px solid white;
+    position:absolute;left:35px;top:35px;
+    width:55px;height:55px;border-radius:50%;
+    background:#ffb000;border:3px solid white;
     pointer-events:none;
   `;
   base.appendChild(knob);
 
-  let joystickPointer = null;
+  let pointer = null;
 
-  function moveJoystick(event) {
+  function moveJoystick(e) {
     const rect = base.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
+    let dx = e.clientX - (rect.left + rect.width / 2);
+    let dy = e.clientY - (rect.top + rect.height / 2);
 
-    let dx = event.clientX - centerX;
-    let dy = event.clientY - centerY;
-
-    const maxDistance = 40;
     const distance = Math.hypot(dx, dy);
-
-    if (distance > maxDistance) {
-      dx = dx / distance * maxDistance;
-      dy = dy / distance * maxDistance;
+    if (distance > 40) {
+      dx *= 40 / distance;
+      dy *= 40 / distance;
     }
 
-    joystickX = dx / maxDistance;
-    joystickY = dy / maxDistance;
+    joystickX = dx / 40;
+    joystickY = dy / 40;
 
-    knob.style.left = (35 + dx) + "px";
-    knob.style.top = (35 + dy) + "px";
+    knob.style.left = 35 + dx + "px";
+    knob.style.top = 35 + dy + "px";
   }
 
-  base.addEventListener("pointerdown", event => {
-    joystickPointer = event.pointerId;
-    base.setPointerCapture(event.pointerId);
-    moveJoystick(event);
+  base.addEventListener("pointerdown", e => {
+    pointer = e.pointerId;
+    base.setPointerCapture(pointer);
+    moveJoystick(e);
   });
 
-  base.addEventListener("pointermove", event => {
-    if (event.pointerId === joystickPointer) {
-      moveJoystick(event);
-    }
+  base.addEventListener("pointermove", e => {
+    if (e.pointerId === pointer) moveJoystick(e);
   });
 
-  function releaseJoystick(event) {
-    if (event.pointerId !== joystickPointer) return;
-    joystickPointer = null;
+  function release(e) {
+    if (e.pointerId !== pointer) return;
+    pointer = null;
     joystickX = 0;
     joystickY = 0;
     knob.style.left = "35px";
     knob.style.top = "35px";
   }
 
-  base.addEventListener("pointerup", releaseJoystick);
-  base.addEventListener("pointercancel", releaseJoystick);
+  base.addEventListener("pointerup", release);
+  base.addEventListener("pointercancel", release);
 
   // Fire button
   const fire = document.createElement("button");
   fire.textContent = "FIRE";
   fire.style.cssText = `
-    position:absolute;
-    right:30px;
-    bottom:55px;
-    width:90px;
-    height:90px;
-    border-radius:50%;
-    border:4px solid white;
-    background:#d62828;
-    color:white;
-    font:bold 20px Arial;
+    position:absolute;right:30px;bottom:55px;
+    width:90px;height:90px;border-radius:50%;
+    border:4px solid white;background:#d62828;
+    color:white;font:bold 20px Arial;
     touch-action:none;
-    box-shadow:0 3px 12px #222;
   `;
   game.appendChild(fire);
 
-  fire.addEventListener("pointerdown", event => {
-    event.preventDefault();
+  fire.addEventListener("pointerdown", e => {
+    e.preventDefault();
     shoot();
-  });
-
-  // Desktop shooting
-  window.addEventListener("keydown", event => {
-    if (event.code === "Space" && started) shoot();
   });
 }
 
-// Shooting
+// Shoot bullets
 function shoot() {
-  if (!started) return;
+  if (!started || health <= 0) return;
 
   const bullet = new THREE.Mesh(
-    new THREE.SphereGeometry(0.09, 8, 8),
-    new THREE.MeshBasicMaterial({ color: 0xffdd00 })
+    new THREE.SphereGeometry(0.12, 10, 10),
+    new THREE.MeshBasicMaterial({ color: 0xffff00 })
   );
 
   const direction = new THREE.Vector3(0, 0, -1);
-  direction.applyQuaternion(soldier.quaternion).normalize();
+  direction.applyQuaternion(player.quaternion).normalize();
 
   bullet.position.set(
-    soldier.position.x,
-    soldier.position.y + 1.5,
-    soldier.position.z
+    player.position.x,
+    1.5,
+    player.position.z
   );
 
   scene.add(bullet);
-  bullets.push({
-    mesh: bullet,
-    direction,
-    life: 0
-  });
+  bullets.push({ mesh: bullet, direction, life: 0 });
 }
 
-// Detect matchmaking success
+window.addEventListener("keydown", e => {
+  if (e.code === "Space") shoot();
+});
+
+// Start game
+function startGame(gameMode) {
+  if (started) return;
+
+  started = true;
+  mode = gameMode;
+  health = 100;
+  score = 0;
+  player.position.set(0, 0, 0);
+
+  document.querySelector(".panel").style.display = "none";
+  game.style.display = "block";
+
+  if (gameMode === "single") {
+    createBots();
+  }
+
+  createControls();
+  updateHUD();
+}
+
+// Single-player selection
+window.addEventListener("aqbattle-single-player", () => {
+  startGame("single player");
+});
+
+// Multiplayer selection
 const statusElement = document.getElementById("status");
 
 if (statusElement) {
   const observer = new MutationObserver(() => {
     if (statusElement.textContent.includes("Match found!")) {
-      enterArena();
+      startGame("multiplayer");
     }
   });
 
@@ -315,56 +332,115 @@ if (statusElement) {
 function animate() {
   requestAnimationFrame(animate);
 
-  if (started) {
+  if (started && health > 0) {
+    let mx = joystickX;
+    let mz = joystickY;
+
+    if (keys["w"] || keys["arrowup"]) mz -= 1;
+    if (keys["s"] || keys["arrowdown"]) mz += 1;
+    if (keys["a"] || keys["arrowleft"]) mx -= 1;
+    if (keys["d"] || keys["arrowright"]) mx += 1;
+
+    const length = Math.hypot(mx, mz);
+    if (length > 1) {
+      mx /= length;
+      mz /= length;
+    }
+
     const speed = 0.14;
+    player.position.x += mx * speed;
+    player.position.z += mz * speed;
 
-    let moveX = joystickX;
-    let moveZ = joystickY;
-
-    if (keys["w"] || keys["arrowup"]) moveZ -= 1;
-    if (keys["s"] || keys["arrowdown"]) moveZ += 1;
-    if (keys["a"] || keys["arrowleft"]) moveX -= 1;
-    if (keys["d"] || keys["arrowright"]) moveX += 1;
-
-    const movement = Math.hypot(moveX, moveZ);
-    if (movement > 1) {
-      moveX /= movement;
-      moveZ /= movement;
+    if (Math.hypot(mx, mz) > 0.05) {
+      player.rotation.y = Math.atan2(-mx, -mz);
     }
 
-    soldier.position.x += moveX * speed;
-    soldier.position.z += moveZ * speed;
-
-    if (movement > 0.05) {
-      soldier.rotation.y = Math.atan2(-moveX, moveZ) + Math.PI;
-    }
-
-    camera.position.x +=
-      (soldier.position.x - camera.position.x) * 0.08;
-    camera.position.z +=
-      (soldier.position.z + 7 - camera.position.z) * 0.08;
-    camera.position.y = 4;
-
-    camera.lookAt(
-      soldier.position.x,
-      1.2,
-      soldier.position.z
+    // Camera follows player
+    const cameraTarget = new THREE.Vector3(
+      player.position.x,
+      4,
+      player.position.z + 7
     );
 
-    // Move bullets
+    camera.position.lerp(cameraTarget, 0.1);
+    camera.lookAt(
+      player.position.x,
+      1.2,
+      player.position.z
+    );
+
+    // Bot intelligence
+    const now = performance.now();
+
+    for (const bot of bots) {
+      if (!bot.alive) continue;
+
+      const dx = player.position.x - bot.mesh.position.x;
+      const dz = player.position.z - bot.mesh.position.z;
+      const distance = Math.hypot(dx, dz);
+
+      if (distance > 2.5) {
+        bot.mesh.position.x += dx / distance * 0.045;
+        bot.mesh.position.z += dz / distance * 0.045;
+      } else if (now - bot.attackTime > 1000) {
+        health = Math.max(0, health - 5);
+        bot.attackTime = now;
+      }
+
+      bot.mesh.rotation.y = Math.atan2(-dx, -dz);
+    }
+
+    // Bullet movement and bot hits
     for (let i = bullets.length - 1; i >= 0; i--) {
       const bullet = bullets[i];
+
       bullet.mesh.position.addScaledVector(
-        bullet.direction, 1.2
+        bullet.direction, 1.0
       );
       bullet.life++;
 
-      if (bullet.life > 70) {
+      let hit = false;
+
+      if (mode === "single player") {
+        for (const bot of bots) {
+          if (!bot.alive) continue;
+
+          if (bullet.mesh.position.distanceTo(
+            new THREE.Vector3(
+              bot.mesh.position.x,
+              1.5,
+              bot.mesh.position.z
+            )
+          ) < 1.0) {
+            bot.alive = false;
+            scene.remove(bot.mesh);
+            score++;
+            hit = true;
+            break;
+          }
+        }
+      }
+
+      if (hit || bullet.life > 70) {
         scene.remove(bullet.mesh);
         bullet.mesh.geometry.dispose();
         bullet.mesh.material.dispose();
         bullets.splice(i, 1);
       }
+    }
+
+    updateHUD();
+
+    if (health <= 0) {
+      hud.innerHTML += "<br>YOU WERE ELIMINATED!";
+      started = false;
+    }
+
+    if (mode === "single player" &&
+        bots.length > 0 &&
+        bots.every(bot => !bot.alive)) {
+      hud.innerHTML += "<br>VICTORY! ALL BOTS ELIMINATED!";
+      started = false;
     }
   }
 
@@ -373,9 +449,8 @@ function animate() {
 
 animate();
 
-// Resize
 window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(innerWidth, innerHeight);
 });
